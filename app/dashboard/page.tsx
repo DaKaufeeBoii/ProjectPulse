@@ -1,6 +1,8 @@
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
+
 function RiskBadge({ score }: { score: number }) {
   const color = score >= 70 ? 'text-rose bg-rose/10 border-rose/20' : score >= 40 ? 'text-amber bg-amber/10 border-amber/20' : 'text-jade bg-jade/10 border-jade/20'
   const label = score >= 70 ? 'High Risk' : score >= 40 ? 'Medium' : 'Healthy'

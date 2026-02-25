@@ -1,5 +1,7 @@
 import { prisma } from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic'
+
 const CATEGORY_COLORS: Record<string, string> = {
   Engineering: 'bg-accent/20 text-accent-light',
   Design: 'bg-sky/20 text-sky',
@@ -88,7 +90,7 @@ export default async function BudgetPage() {
             <h2 className="font-display font-semibold text-white">By Category</h2>
           </div>
           <div className="p-6 space-y-3">
-            {Object.entries(byCategory).sort(([,a],[,b]) => b - a).map(([cat, amount]) => (
+            {Object.entries(byCategory).sort(([, a], [, b]) => b - a).map(([cat, amount]) => (
               <div key={cat} className="flex items-center justify-between">
                 <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${CATEGORY_COLORS[cat] || 'bg-white/10 text-white/60'}`}>
                   {cat}

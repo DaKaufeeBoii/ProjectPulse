@@ -5,6 +5,8 @@ import KanbanBoard from './KanbanBoard'
 import ChatPanel from './ChatPanel'
 import AIRiskPanel from './AIRiskPanel'
 
+export const dynamic = 'force-dynamic'
+
 export default async function ProjectPage({ params }: { params: { id: string } }) {
   const project = await prisma.project.findUnique({
     where: { id: params.id },
@@ -34,8 +36,8 @@ export default async function ProjectPage({ params }: { params: { id: string } }
               )}
               {/* Role badge on project page */}
               <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border ${role === 'admin' ? 'bg-accent/15 text-accent-light border-accent/25' :
-                  role === 'manager' ? 'bg-amber/15 text-amber border-amber/25' :
-                    'bg-jade/15 text-jade border-jade/25'
+                role === 'manager' ? 'bg-amber/15 text-amber border-amber/25' :
+                  'bg-jade/15 text-jade border-jade/25'
                 }`}>
                 {role}
               </span>

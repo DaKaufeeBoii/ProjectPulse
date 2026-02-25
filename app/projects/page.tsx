@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { cookies } from 'next/headers'
 import { SESSION_COOKIE, decodeSession } from '@/lib/auth'
 
+export const dynamic = 'force-dynamic'
+
 export default async function ProjectsPage() {
   const raw = cookies().get(SESSION_COOKIE)?.value
   const session = raw ? decodeSession(raw) : null
