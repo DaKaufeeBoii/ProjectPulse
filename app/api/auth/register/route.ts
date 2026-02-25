@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { registerUser } from '@/lib/db-auth';
 import type { Role } from '@/lib/db-auth';
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(req: Request) {
     try {
         const { name, email, password, role } = await req.json();

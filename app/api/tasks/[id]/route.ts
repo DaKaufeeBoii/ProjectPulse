@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { SESSION_COOKIE, decodeSession } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic'
+
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   // ── Read session ────────────────────────────────────
   const cookieStore = cookies();

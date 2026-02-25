@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { verifyUser, resendCode } from '@/lib/db-auth';
 import { encodeSession, SESSION_COOKIE } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(req: Request) {
     try {
         const { email, code, action } = await req.json();
