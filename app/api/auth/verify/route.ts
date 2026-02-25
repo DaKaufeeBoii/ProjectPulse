@@ -1,0 +1,49 @@
+import { NextResponse } from 'next/server';
+import { verifyUser, resendCode } from '@/lib/db-auth';
+import { encodeSession, SESSION_COOKIE } from '@/lib/auth';
+
+export async function POST(req: Request) {
+    try {
+        const { email, code, action } = await req.json();
+
+        if (!email?.trim()) {
+            return NextResponse.json({ error: 'Email is required.' }, { status: 400 });
+        }
+
+        if (action === 'resend') {
+            const newCode = await resendCode(email);
+            console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            console.log('📬  ProjectPulse — Resent Verification Code');
+            console.log(`   To: ${email}`);
+            console.log(`   New Code: ${newCode}`);
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+            return NextResponse.json({ success: true, message: 'A new code has been sent.' });
+        }
+
+        if (!code?.trim()) {
+            return NextResponse.json({ error: 'Verification code is required.' }, { status: 400 });
+        }
+
+        const user = await verifyUser(email, code);
+
+        const sessionValue = encodeSession({ userId: user.id, email: user.email, name: user.name, role: user.role });
+        const res = NextResponse.json({ success: true });
+        res.cookies.set(SESSION_COOKIE, sessionValue, {
+            httpOnly: true,
+            path: '/',
+            maxAge: 60 * 60 * 24 * 7,
+            sameSite: 'lax',
+        });
+        return res;
+    } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        if (message === 'INVALID_CODE') {
+            return NextResponse.json({ error: 'Incorrect code. Please try again.' }, { status: 400 });
+        }
+        if (message === 'ALREADY_VERIFIED') {
+            return NextResponse.json({ error: 'This account is already verified.' }, { status: 409 });
+        }
+        console.error('[verify]', err);
+        return NextResponse.json({ error: 'Verification failed.' }, { status: 500 });
+    }
+}
