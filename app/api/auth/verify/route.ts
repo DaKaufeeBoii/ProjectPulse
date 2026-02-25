@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { verifyUser, resendCode } from '@/lib/db-auth';
 import { encodeSession, SESSION_COOKIE } from '@/lib/auth';
 import { sendVerificationEmail } from '@/lib/email';
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic'
 
@@ -17,6 +18,18 @@ export async function POST(req: Request) {
             const newCode = await resendCode(email);
             await sendVerificationEmail(email, newCode, email.split('@')[0]);
             return NextResponse.json({ success: true, message: 'A new code has been sent.' });
+        }
+
+        // ── TEMP: skip verification ──────────────────────────
+        if (action === 'skip') {
+            const user = await prisma.user.update({
+                where: { email },
+                data: { verified: true },
+            });
+            const sessionValue = encodeSession({ userId: user.id, email: user.email, name: user.name, role: user.role as any });
+            const res = NextResponse.json({ success: true });
+            res.cookies.set(SESSION_COOKIE, sessionValue, { httpOnly: true, path: '/', maxAge: 60 * 60 * 24 * 7, sameSite: 'lax' });
+            return res;
         }
 
         if (!code?.trim()) {

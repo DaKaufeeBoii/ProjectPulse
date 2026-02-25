@@ -75,10 +75,28 @@ function VerifyForm() {
             });
             const data = await res.json();
             if (!res.ok) { setError(data.error); return; }
-            setMessage('A new code has been sent. Check your server console.');
+            setMessage('A new code has been sent.');
             setResendCooldown(30);
         } catch {
             setError('Failed to resend code.');
+        }
+    }
+
+    async function handleSkip() {
+        setError(''); setLoading(true);
+        try {
+            const res = await fetch('/api/auth/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, action: 'skip' }),
+            });
+            const data = await res.json();
+            if (!res.ok) { setError(data.error); return; }
+            router.push('/dashboard');
+        } catch {
+            setError('Something went wrong.');
+        } finally {
+            setLoading(false);
         }
     }
 
@@ -145,6 +163,15 @@ function VerifyForm() {
                     : <button onClick={handleResend} className="text-accent-light hover:underline">Resend</button>
                 }
             </p>
+
+            {/* TEMP: skip button — remove before prod */}
+            <button
+                onClick={handleSkip}
+                disabled={loading}
+                className="w-full mt-3 border border-amber/30 text-amber/70 hover:text-amber hover:border-amber/60 text-xs py-2 rounded-lg transition-colors disabled:opacity-40"
+            >
+                ⚡ Skip Verification (Dev Only)
+            </button>
         </div>
     );
 }
