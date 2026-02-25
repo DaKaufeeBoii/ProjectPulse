@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { verifyUser, resendCode } from '@/lib/db-auth';
 import { encodeSession, SESSION_COOKIE } from '@/lib/auth';
+import { sendVerificationEmail } from '@/lib/email';
 
 export const dynamic = 'force-dynamic'
 
@@ -14,11 +15,7 @@ export async function POST(req: Request) {
 
         if (action === 'resend') {
             const newCode = await resendCode(email);
-            console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-            console.log('📬  ProjectPulse — Resent Verification Code');
-            console.log(`   To: ${email}`);
-            console.log(`   New Code: ${newCode}`);
-            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+            await sendVerificationEmail(email, newCode, email.split('@')[0]);
             return NextResponse.json({ success: true, message: 'A new code has been sent.' });
         }
 

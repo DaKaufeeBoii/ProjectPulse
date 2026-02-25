@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { registerUser } from '@/lib/db-auth';
 import type { Role } from '@/lib/db-auth';
+import { sendVerificationEmail } from '@/lib/email';
 
 export const dynamic = 'force-dynamic'
 
@@ -20,11 +21,7 @@ export async function POST(req: Request) {
 
         const { email: userEmail, code } = await registerUser({ name, email, password, role: resolvedRole });
 
-        console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        console.log('📬  ProjectPulse — Email Verification');
-        console.log(`   To: ${userEmail}  [${resolvedRole.toUpperCase()}]`);
-        console.log(`   Code: ${code}`);
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+        await sendVerificationEmail(userEmail, code, name.trim());
 
         return NextResponse.json({ success: true, email: userEmail });
     } catch (err: unknown) {
