@@ -30,6 +30,6 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'An account with that email already exists.' }, { status: 409 });
         }
         console.error('[register]', err);
-        return NextResponse.json({ error: 'Registration failed. Please try again.' }, { status: 500 });
+        return NextResponse.json({ error: message, fullError: String(err) }, { status: 500 });
     }
 }

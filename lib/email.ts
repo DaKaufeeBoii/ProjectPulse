@@ -14,7 +14,7 @@ export async function sendVerificationEmail(to: string, code: string, name: stri
         return;
     }
 
-    await resend.emails.send({
+    const { error } = await resend.emails.send({
         from: FROM,
         to,
         subject: 'Your ProjectPulse verification code',
@@ -62,4 +62,14 @@ export async function sendVerificationEmail(to: string, code: string, name: stri
 </body>
 </html>`,
     });
+
+    if (error) {
+        console.error('Resend Error:', error);
+        console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log(`⚠️ Email failed via Resend. Use this code to verify:`);
+        console.log(`   To: ${to}`);
+        console.log(`   Code: ${code}`);
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+        // Do not throw the error, we still want the user to be able to verify
+    }
 }
