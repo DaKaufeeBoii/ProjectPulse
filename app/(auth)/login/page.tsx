@@ -8,6 +8,7 @@ function LoginForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const next = searchParams.get('next') || '/dashboard';
+    const justRegistered = searchParams.get('registered') === '1';
 
     const [form, setForm] = useState({ email: '', password: '' });
     const [error, setError] = useState('');
@@ -25,10 +26,6 @@ function LoginForm() {
             });
             const data = await res.json();
             if (!res.ok) {
-                if (data.code === 'NOT_VERIFIED') {
-                    router.push(`/verify?email=${encodeURIComponent(form.email)}`);
-                    return;
-                }
                 setError(data.error);
                 return;
             }
@@ -44,6 +41,13 @@ function LoginForm() {
         <div className="glass rounded-2xl p-8 w-full max-w-md glow">
             <h1 className="font-display text-2xl font-bold text-white mb-1">Welcome back</h1>
             <p className="text-sm text-white/50 mb-8">Sign in to your ProjectPulse workspace.</p>
+
+            {justRegistered && (
+                <div className="flex items-center gap-2 text-sm mb-6 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-lg px-4 py-3">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+                    Account created! You can now sign in below.
+                </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>

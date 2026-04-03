@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { registerUser } from '@/lib/db-auth';
 import type { Role } from '@/lib/db-auth';
-import { sendVerificationEmail } from '@/lib/email';
 
 export const dynamic = 'force-dynamic'
 
@@ -19,9 +18,7 @@ export async function POST(req: Request) {
         const validRoles: Role[] = ['admin', 'manager', 'employee'];
         const resolvedRole: Role = validRoles.includes(role) ? role : 'employee';
 
-        const { email: userEmail, code } = await registerUser({ name, email, password, role: resolvedRole });
-
-        await sendVerificationEmail(userEmail, code, name.trim());
+        const { email: userEmail } = await registerUser({ name, email, password, role: resolvedRole });
 
         return NextResponse.json({ success: true, email: userEmail });
     } catch (err: unknown) {
@@ -30,6 +27,6 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'An account with that email already exists.' }, { status: 409 });
         }
         console.error('[register]', err);
-        return NextResponse.json({ error: message, fullError: String(err) }, { status: 500 });
+        return NextResponse.json({ error: 'Registration failed. Please try again.' }, { status: 500 });
     }
 }
