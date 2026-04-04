@@ -8,19 +8,47 @@ export const dynamic = 'force-dynamic'
 export default async function ProjectsPage() {
   const raw = cookies().get(SESSION_COOKIE)?.value
   const session = raw ? decodeSession(raw) : null
+  const isEmployee = session?.role === 'employee'
   const canCreate = session?.role === 'admin' || session?.role === 'manager'
 
-  const projects = await (prisma.project.findMany as any)({
-    include: { tasks: true, team: { select: { name: true } } },
-    orderBy: { createdAt: 'desc' },
-  }) as Array<any>
+  let projects: any[] = []
+
+  if (isEmployee && session) {
+    // Employees: find their team memberships, then only show projects from those teams
+    const memberships = await prisma.teamMember.findMany({
+      where: { userId: session.userId },
+      select: { teamId: true },
+    })
+    const teamIds = memberships.map(m => m.teamId)
+
+    if (teamIds.length === 0) {
+      // Employee is not in any team — show empty with a message
+      projects = []
+    } else {
+      projects = await (prisma.project.findMany as any)({
+        where: { teamId: { in: teamIds } },
+        include: { tasks: true, team: { select: { name: true } } },
+        orderBy: { createdAt: 'desc' },
+      })
+    }
+  } else {
+    // Admins and managers see all projects
+    projects = await (prisma.project.findMany as any)({
+      include: { tasks: true, team: { select: { name: true } } },
+      orderBy: { createdAt: 'desc' },
+    })
+  }
 
   return (
     <div className="p-8 animate-slide-up">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="font-display text-3xl font-bold text-white mb-1">Projects</h1>
-          <p className="text-white/40 text-sm">{projects.length} active projects</p>
+          <p className="text-white/40 text-sm">
+            {isEmployee
+              ? `${projects.length} project${projects.length !== 1 ? 's' : ''} in your team`
+              : `${projects.length} active projects`}
+          </p>
         </div>
         {canCreate && (
           <Link
@@ -32,8 +60,17 @@ export default async function ProjectsPage() {
         )}
       </div>
 
+      {/* Employee with no team */}
+      {isEmployee && projects.length === 0 && (
+        <div className="glass rounded-xl p-12 text-center border border-white/5">
+          <div className="text-4xl mb-4">🏢</div>
+          <p className="text-white/50 text-sm font-medium">You&apos;re not assigned to any team yet.</p>
+          <p className="text-white/25 text-xs mt-1">Contact your manager to be added to a team and project.</p>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-4">
-        {projects.map((p) => {
+        {projects.map((p: any) => {
           const done = p.tasks.filter((t: any) => t.status === 'done').length
           const inProgress = p.tasks.filter((t: any) => t.status === 'in-progress').length
           const blocked = p.tasks.filter((t: any) => t.status === 'blocked').length

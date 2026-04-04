@@ -13,15 +13,18 @@ export default function ChatPanel({
   initialMessages,
   projectId,
   userName,
+  canChat,
 }: {
   initialMessages: Msg[]
   projectId: string
   userName: string
+  canChat: boolean
 }) {
   const [messages, setMessages] = useState<Msg[]>(initialMessages)
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const [connected, setConnected] = useState(false)
+  const [sendError, setSendError] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
 
   // ── SSE subscription ─────────────────────────────────────
@@ -34,11 +37,9 @@ export default function ChatPanel({
       try {
         const payload = JSON.parse(e.data)
         if (payload.type === 'init') {
-          // Replace local state with authoritative list from server
           setMessages(payload.messages)
         } else if (payload.type === 'message') {
           setMessages(prev => {
-            // Avoid duplicates (our own optimistic message is already there)
             if (prev.find(m => m.id === payload.message.id)) return prev
             return [...prev, payload.message]
           })
@@ -57,12 +58,13 @@ export default function ChatPanel({
   }, [messages])
 
   async function send() {
-    if (!text.trim() || sending) return
+    if (!text.trim() || sending || !canChat) return
     setSending(true)
+    setSendError('')
     const draft = text
     setText('')
 
-    await fetch('/api/messages', {
+    const res = await fetch('/api/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -72,6 +74,12 @@ export default function ChatPanel({
         avatar: (userName || 'You').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
       }),
     })
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      setSendError(data.error || 'Failed to send message.')
+      setText(draft) // restore draft
+    }
     setSending(false)
   }
 
@@ -119,24 +127,38 @@ export default function ChatPanel({
         <div ref={bottomRef} />
       </div>
 
-      <div className="px-4 py-3 border-t border-white/5">
-        <div className="flex gap-2">
-          <input
-            value={text}
-            onChange={e => setText(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
-            placeholder="Type a message…"
-            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3.5 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-accent/50 transition-colors"
-          />
-          <button
-            onClick={send}
-            disabled={sending || !text.trim()}
-            className="px-3 py-2 bg-accent hover:bg-accent/80 disabled:opacity-30 text-white rounded-xl transition-all text-sm"
-          >
-            ↑
-          </button>
+      {/* Input area — blocked if not in team */}
+      {canChat ? (
+        <div className="px-4 py-3 border-t border-white/5">
+          {sendError && (
+            <p className="text-rose text-xs mb-2 px-1">{sendError}</p>
+          )}
+          <div className="flex gap-2">
+            <input
+              value={text}
+              onChange={e => setText(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
+              placeholder="Type a message…"
+              className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3.5 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-accent/50 transition-colors"
+            />
+            <button
+              onClick={send}
+              disabled={sending || !text.trim()}
+              className="px-3 py-2 bg-accent hover:bg-accent/80 disabled:opacity-30 text-white rounded-xl transition-all text-sm"
+            >
+              ↑
+            </button>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="px-4 py-4 border-t border-white/5 flex items-center gap-2 text-white/30 text-xs">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+          You must be a team member to send messages.
+        </div>
+      )}
     </div>
   )
 }

@@ -7,9 +7,12 @@ type Task = {
   title: string
   status: string
   priority: string
-  assignee: string | null
+  assigneeId: string | null
+  assignee: { id: string; name: string } | null
   dueDate: string | null
 }
+
+type TeamMember = { id: string; name: string; role: string }
 
 type Role = 'admin' | 'manager' | 'employee'
 
@@ -27,24 +30,41 @@ const PRIORITY_COLOR: Record<string, string> = {
   low: 'border-l-white/20',
 }
 
+// Allowed status transitions for employees
+const EMPLOYEE_ALLOWED_TRANSITIONS: Record<string, string[]> = {
+  'todo': ['in-progress'],
+  'in-progress': ['todo', 'pending-review'],
+  'pending-review': ['in-progress'], // can pull back from pending if rejected
+  'blocked': [],
+  'done': [],
+}
+
 interface Props {
   tasks: Task[]
   projectId: string
   role: Role
   userName: string
+  userId: string
+  teamMembers: TeamMember[]
 }
 
-export default function KanbanBoard({ tasks: initialTasks, projectId, role, userName }: Props) {
+export default function KanbanBoard({ tasks: initialTasks, projectId, role, userName, userId, teamMembers }: Props) {
   const [tasks, setTasks] = useState(initialTasks)
   const [adding, setAdding] = useState(false)
   const [newTitle, setNewTitle] = useState('')
+  const [newAssigneeId, setNewAssigneeId] = useState('')
+  const [newPriority, setNewPriority] = useState<'low' | 'medium' | 'high'>('medium')
   const [error, setError] = useState('')
   const router = useRouter()
   const isAdmin = role === 'admin' || role === 'manager'
 
+  // Employees only see tasks assigned to them
+  const visibleTasks = isAdmin
+    ? tasks
+    : tasks.filter(t => t.assigneeId === userId)
+
   async function moveTask(taskId: string, newStatus: string) {
     setError('')
-    // Optimistic update
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t))
     const res = await fetch(`/api/tasks/${taskId}`, {
       method: 'PATCH',
@@ -54,7 +74,6 @@ export default function KanbanBoard({ tasks: initialTasks, projectId, role, user
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
       setError(data.error || 'Action not permitted.')
-      // Rollback
       setTasks(initialTasks)
     } else {
       router.refresh()
@@ -66,12 +85,26 @@ export default function KanbanBoard({ tasks: initialTasks, projectId, role, user
     const res = await fetch('/api/tasks', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: newTitle, projectId, status: 'todo', priority: 'medium' }),
+      body: JSON.stringify({
+        title: newTitle,
+        projectId,
+        status: 'todo',
+        priority: newPriority,
+        assigneeId: newAssigneeId || null,
+      }),
     })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      setError(data.error || 'Failed to create task.')
+      return
+    }
     const task = await res.json()
     setTasks(prev => [...prev, task])
     setNewTitle('')
+    setNewAssigneeId('')
+    setNewPriority('medium')
     setAdding(false)
+    router.refresh()
   }
 
   async function deleteTask(taskId: string) {
@@ -80,17 +113,25 @@ export default function KanbanBoard({ tasks: initialTasks, projectId, role, user
     router.refresh()
   }
 
-  // What move actions are visible for a given task+column (for the current user)
   function getAvailableMoves(task: Task, currentColId: string): typeof COLUMNS {
-    // Both admins/managers and employees can move any task to any column.
-    // (Approve/Reject for pending-review is shown separately for admins only.)
-    return COLUMNS.filter(c => c.id !== currentColId)
+    if (isAdmin) {
+      // Admins/managers can move to any column except the current one
+      return COLUMNS.filter(c => c.id !== currentColId)
+    }
+    // Employees: restricted transitions for their own tasks only
+    const allowed = EMPLOYEE_ALLOWED_TRANSITIONS[currentColId] ?? []
+    return COLUMNS.filter(c => allowed.includes(c.id))
   }
 
   return (
     <div className="glass rounded-xl overflow-hidden">
       <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between">
-        <h2 className="font-display font-semibold text-white">Tasks</h2>
+        <div>
+          <h2 className="font-display font-semibold text-white">Tasks</h2>
+          {!isAdmin && (
+            <p className="text-[10px] text-white/30 mt-0.5">Showing your assigned tasks</p>
+          )}
+        </div>
         {isAdmin && (
           <button
             onClick={() => setAdding(true)}
@@ -108,23 +149,54 @@ export default function KanbanBoard({ tasks: initialTasks, projectId, role, user
         </div>
       )}
 
+      {/* Add task form — managers/admins only */}
       {adding && isAdmin && (
-        <div className="px-6 py-3 border-b border-white/5 flex gap-2">
-          <input
-            autoFocus value={newTitle}
-            onChange={e => setNewTitle(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') addTask(); if (e.key === 'Escape') setAdding(false) }}
-            placeholder="Task title..."
-            className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-accent/50"
-          />
-          <button onClick={addTask} className="px-3 py-1.5 bg-accent text-white text-xs rounded-lg hover:bg-accent/80 transition-colors">Add</button>
-          <button onClick={() => setAdding(false)} className="px-3 py-1.5 text-white/40 text-xs hover:text-white transition-colors">Cancel</button>
+        <div className="px-6 py-4 border-b border-white/5 space-y-3 bg-surface-2/50">
+          <div className="flex gap-2">
+            <input
+              autoFocus value={newTitle}
+              onChange={e => setNewTitle(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') addTask(); if (e.key === 'Escape') setAdding(false) }}
+              placeholder="Task title..."
+              className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-accent/50"
+            />
+          </div>
+
+          <div className="flex gap-2 flex-wrap">
+            {/* Assign to employee */}
+            {teamMembers.length > 0 && (
+              <select
+                value={newAssigneeId}
+                onChange={e => setNewAssigneeId(e.target.value)}
+                className="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-accent/50 cursor-pointer flex-1"
+              >
+                <option value="">Assign to… (optional)</option>
+                {teamMembers.map(m => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
+            )}
+
+            {/* Priority selector */}
+            <select
+              value={newPriority}
+              onChange={e => setNewPriority(e.target.value as 'low' | 'medium' | 'high')}
+              className="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-accent/50 cursor-pointer"
+            >
+              <option value="low">Low priority</option>
+              <option value="medium">Medium priority</option>
+              <option value="high">High priority</option>
+            </select>
+
+            <button onClick={addTask} className="px-3 py-1.5 bg-accent text-white text-xs rounded-lg hover:bg-accent/80 transition-colors">Add</button>
+            <button onClick={() => setAdding(false)} className="px-3 py-1.5 text-white/40 text-xs hover:text-white transition-colors">Cancel</button>
+          </div>
         </div>
       )}
 
       <div className="grid grid-cols-5 divide-x divide-white/5 overflow-x-auto">
         {COLUMNS.map(col => {
-          const colTasks = tasks.filter(t => t.status === col.id)
+          const colTasks = visibleTasks.filter(t => t.status === col.id)
           return (
             <div key={col.id} className="p-3 min-w-[160px]">
               <div className={`flex items-center justify-between mb-3 px-2 py-1.5 rounded-lg ${col.headerBg}`}>
@@ -134,18 +206,20 @@ export default function KanbanBoard({ tasks: initialTasks, projectId, role, user
               <div className="space-y-2">
                 {colTasks.map(task => {
                   const moves = getAvailableMoves(task, col.id)
-                  const isMyTask = task.assignee?.toLowerCase() === userName.toLowerCase()
+                  const isMyTask = task.assigneeId === userId
                   const isPendingReview = col.id === 'pending-review'
+                  const assigneeName = task.assignee?.name ?? null
 
                   return (
                     <div key={task.id} className={`bg-surface-3 rounded-lg p-3 border-l-2 ${PRIORITY_COLOR[task.priority]} group`}>
                       <p className="text-xs text-white/80 group-hover:text-white mb-2 leading-snug">{task.title}</p>
-                      {task.assignee && (
+
+                      {assigneeName && (
                         <div className="flex items-center gap-1.5 mb-2">
                           <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${isMyTask ? 'bg-jade/30 text-jade' : 'bg-accent/30 text-accent-light'}`}>
-                            {task.assignee.split(' ').map(n => n[0]).join('')}
+                            {assigneeName.split(' ').map((n: string) => n[0]).join('')}
                           </div>
-                          <span className="text-[10px] text-white/30">{task.assignee}</span>
+                          <span className="text-[10px] text-white/30">{assigneeName}</span>
                         </div>
                       )}
 
@@ -169,7 +243,7 @@ export default function KanbanBoard({ tasks: initialTasks, projectId, role, user
                           </>
                         )}
 
-                        {/* Other move buttons (admin: all; employee: submit for review) */}
+                        {/* Other move buttons */}
                         {!(isAdmin && isPendingReview) && moves.map(c => (
                           <button
                             key={c.id}

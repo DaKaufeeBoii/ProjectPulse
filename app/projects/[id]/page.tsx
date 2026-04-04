@@ -10,14 +10,42 @@ export const dynamic = 'force-dynamic'
 export default async function ProjectPage({ params }: { params: { id: string } }) {
   const project = await prisma.project.findUnique({
     where: { id: params.id },
-    include: { tasks: { orderBy: { createdAt: 'asc' } }, messages: { orderBy: { createdAt: 'asc' } } },
+    include: {
+      tasks: {
+        orderBy: { createdAt: 'asc' },
+        include: { assignee: { select: { id: true, name: true } } },
+      },
+      messages: { orderBy: { createdAt: 'asc' } },
+      team: {
+        include: {
+          members: {
+            include: { user: { select: { id: true, name: true, role: true } } },
+          },
+        },
+      },
+    },
   })
   if (!project) notFound()
 
-  // Get session for role-based UI
   const session = getSession()
   const role = session?.role ?? 'employee'
   const userName = session?.name ?? ''
+  const userId = session?.userId ?? ''
+
+  // Check if this employee is a member of the project's team
+  const isInTeam = role !== 'employee' || (
+    project.team?.members.some(m => m.user.id === userId) ?? false
+  )
+
+  // If employee is not in this project's team, block access entirely
+  if (role === 'employee' && !isInTeam) {
+    notFound()
+  }
+
+  // Build list of assignable team members (employees in this project's team)
+  const teamMembers = project.team?.members
+    .map(m => ({ id: m.user.id, name: m.user.name, role: m.user.role }))
+    .filter(m => m.role === 'employee') ?? []
 
   const done = project.tasks.filter(t => t.status === 'done').length
   const pct = project.tasks.length ? Math.round(done / project.tasks.length * 100) : 0
@@ -34,7 +62,6 @@ export default async function ProjectPage({ params }: { params: { id: string } }
               {project.riskScore >= 70 && (
                 <span className="text-xs bg-rose/20 text-rose px-2.5 py-1 rounded-full border border-rose/20 font-medium">⚠ High Risk</span>
               )}
-              {/* Role badge on project page */}
               <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border ${role === 'admin' ? 'bg-accent/15 text-accent-light border-accent/25' :
                 role === 'manager' ? 'bg-amber/15 text-amber border-amber/25' :
                   'bg-jade/15 text-jade border-jade/25'
@@ -76,11 +103,18 @@ export default async function ProjectPage({ params }: { params: { id: string } }
             projectId={project.id}
             role={role}
             userName={userName}
+            userId={userId}
+            teamMembers={teamMembers}
           />
           <AIRiskPanel project={project as any} />
         </div>
         <div>
-          <ChatPanel initialMessages={project.messages as any} projectId={project.id} userName={userName} />
+          <ChatPanel
+            initialMessages={project.messages as any}
+            projectId={project.id}
+            userName={userName}
+            canChat={isInTeam}
+          />
         </div>
       </div>
     </div>

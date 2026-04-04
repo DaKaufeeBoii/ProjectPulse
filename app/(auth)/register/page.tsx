@@ -1,19 +1,41 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 
 type RoleOption = 'admin' | 'manager' | 'employee';
 
+interface Team {
+    id: string;
+    name: string;
+    description?: string | null;
+}
+
 export default function RegisterPage() {
     const router = useRouter();
-    const [form, setForm] = useState({ name: '', email: '', password: '', role: 'employee' as RoleOption });
+    const [form, setForm] = useState({ name: '', email: '', password: '', role: 'employee' as RoleOption, teamId: '' });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [teams, setTeams] = useState<Team[]>([]);
+    const [teamsLoading, setTeamsLoading] = useState(true);
+
+    useEffect(() => {
+        fetch('/api/teams')
+            .then(r => r.json())
+            .then((data: Team[]) => setTeams(Array.isArray(data) ? data : []))
+            .catch(() => setTeams([]))
+            .finally(() => setTeamsLoading(false));
+    }, []);
 
     async function handleSubmit(e: FormEvent) {
         e.preventDefault();
         setError('');
+
+        if (form.role === 'employee' && !form.teamId) {
+            setError('Please select the company you are working for.');
+            return;
+        }
+
         setLoading(true);
         try {
             const res = await fetch('/api/auth/register', {
@@ -33,8 +55,8 @@ export default function RegisterPage() {
 
     const roles: { value: RoleOption; label: string; desc: string; icon: string }[] = [
         { value: 'admin', label: 'Admin', desc: 'Full control & approvals', icon: '🛡️' },
-        { value: 'manager', label: 'Manager', desc: 'Manage team & approvals', icon: '👔' },
-        { value: 'employee', label: 'Employee', desc: 'Submit tasks for review', icon: '👤' },
+        { value: 'manager', label: 'Manager', desc: 'Manage team & tasks', icon: '👔' },
+        { value: 'employee', label: 'Employee', desc: 'Work on assigned tasks', icon: '👤' },
     ];
 
     const roleStyle: Record<RoleOption, { active: string }> = {
@@ -85,7 +107,7 @@ export default function RegisterPage() {
                         {roles.map(r => (
                             <button
                                 key={r.value} type="button"
-                                onClick={() => setForm(f => ({ ...f, role: r.value }))}
+                                onClick={() => setForm(f => ({ ...f, role: r.value, teamId: '' }))}
                                 className={`text-left p-3 rounded-xl border-2 transition-all ${form.role === r.value ? roleStyle[r.value].active : 'border-white/8 hover:border-white/20 text-white/50'
                                     }`}
                             >
@@ -96,6 +118,38 @@ export default function RegisterPage() {
                         ))}
                     </div>
                 </div>
+
+                {/* Company selector — only for employees */}
+                {form.role === 'employee' && (
+                    <div>
+                        <label className="block text-xs font-medium text-white/50 uppercase tracking-widest mb-1.5">
+                            Company / Team
+                        </label>
+                        {teamsLoading ? (
+                            <div className="w-full bg-surface-3 border border-white/8 rounded-lg px-4 py-2.5 text-sm text-white/30">
+                                Loading companies…
+                            </div>
+                        ) : teams.length === 0 ? (
+                            <div className="w-full bg-surface-3 border border-white/8 rounded-lg px-4 py-2.5 text-sm text-white/30">
+                                No companies registered yet. Ask your manager to create one first.
+                            </div>
+                        ) : (
+                            <select
+                                required
+                                value={form.teamId}
+                                onChange={e => setForm(f => ({ ...f, teamId: e.target.value }))}
+                                className="w-full bg-surface-3 border border-white/8 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors appearance-none cursor-pointer"
+                            >
+                                <option value="" disabled className="bg-surface-3">Select your company…</option>
+                                {teams.map(t => (
+                                    <option key={t.id} value={t.id} className="bg-surface-3">
+                                        {t.name}
+                                    </option>
+                                ))}
+                            </select>
+                        )}
+                    </div>
+                )}
 
                 {error && (
                     <div className="flex items-center gap-2 text-rose text-sm bg-rose/10 border border-rose/20 rounded-lg px-4 py-2.5">

@@ -10,20 +10,29 @@ function getSession() {
     return raw ? decodeSession(raw) : null
 }
 
-// GET /api/teams — list all teams with member count
+// GET /api/teams — public for registration form; authenticated users get member details
 export async function GET() {
     const session = getSession()
-    if (!session) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 })
 
-    const teams = await prisma.team.findMany({
-        include: {
-            members: {
-                include: {
-                    user: { select: { id: true, name: true, email: true, role: true } },
+    if (session) {
+        // Authenticated: return full details
+        const teams = await prisma.team.findMany({
+            include: {
+                members: {
+                    include: {
+                        user: { select: { id: true, name: true, email: true, role: true } },
+                    },
                 },
             },
-        },
-        orderBy: { createdAt: 'desc' },
+            orderBy: { createdAt: 'desc' },
+        })
+        return NextResponse.json(teams)
+    }
+
+    // Unauthenticated (registration form): return minimal list
+    const teams = await prisma.team.findMany({
+        select: { id: true, name: true, description: true },
+        orderBy: { name: 'asc' },
     })
     return NextResponse.json(teams)
 }

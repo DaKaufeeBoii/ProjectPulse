@@ -21,13 +21,13 @@ async function main() {
       riskReason: 'Budget 84% consumed with 3 major tasks still open. Deadline in 7 days.',
       tasks: {
         create: [
-          { title: 'Design system audit', status: 'done', priority: 'high', assignee: 'Sara K.', dueDate: new Date(Date.now() - 5 * 86400000) },
-          { title: 'New landing page mockups', status: 'done', priority: 'high', assignee: 'Marcus L.', dueDate: new Date(Date.now() - 3 * 86400000) },
-          { title: 'Component library build', status: 'in-progress', priority: 'high', assignee: 'Sara K.', dueDate: new Date(Date.now() + 2 * 86400000) },
-          { title: 'CMS integration', status: 'in-progress', priority: 'medium', assignee: 'Jay P.', dueDate: new Date(Date.now() + 4 * 86400000) },
-          { title: 'Mobile responsiveness QA', status: 'todo', priority: 'high', assignee: 'Marcus L.', dueDate: new Date(Date.now() + 6 * 86400000) },
-          { title: 'SEO meta tags', status: 'todo', priority: 'low', assignee: 'Jay P.', dueDate: new Date(Date.now() + 6 * 86400000) },
-          { title: 'Performance audit', status: 'blocked', priority: 'medium', assignee: 'Sara K.', dueDate: new Date(Date.now() + 7 * 86400000) },
+          { title: 'Design system audit', status: 'done', priority: 'high', dueDate: new Date(Date.now() - 5 * 86400000) },
+          { title: 'New landing page mockups', status: 'done', priority: 'high', dueDate: new Date(Date.now() - 3 * 86400000) },
+          { title: 'Component library build', status: 'in-progress', priority: 'high', dueDate: new Date(Date.now() + 2 * 86400000) },
+          { title: 'CMS integration', status: 'in-progress', priority: 'medium', dueDate: new Date(Date.now() + 4 * 86400000) },
+          { title: 'Mobile responsiveness QA', status: 'todo', priority: 'high', dueDate: new Date(Date.now() + 6 * 86400000) },
+          { title: 'SEO meta tags', status: 'todo', priority: 'low', dueDate: new Date(Date.now() + 6 * 86400000) },
+          { title: 'Performance audit', status: 'blocked', priority: 'medium', dueDate: new Date(Date.now() + 7 * 86400000) },
         ]
       },
       messages: {
@@ -52,12 +52,12 @@ async function main() {
       riskReason: 'On track. Budget and timeline healthy.',
       tasks: {
         create: [
-          { title: 'User research synthesis', status: 'done', priority: 'high', assignee: 'Priya M.', dueDate: new Date(Date.now() - 10 * 86400000) },
-          { title: 'Auth flow redesign', status: 'done', priority: 'high', assignee: 'Dev T.', dueDate: new Date(Date.now() - 7 * 86400000) },
-          { title: 'Push notifications setup', status: 'in-progress', priority: 'high', assignee: 'Dev T.', dueDate: new Date(Date.now() + 5 * 86400000) },
-          { title: 'Offline mode support', status: 'in-progress', priority: 'medium', assignee: 'Priya M.', dueDate: new Date(Date.now() + 10 * 86400000) },
-          { title: 'Analytics integration', status: 'todo', priority: 'medium', assignee: 'Dev T.', dueDate: new Date(Date.now() + 20 * 86400000) },
-          { title: 'Beta testing', status: 'todo', priority: 'high', assignee: 'Priya M.', dueDate: new Date(Date.now() + 35 * 86400000) },
+          { title: 'User research synthesis', status: 'done', priority: 'high', dueDate: new Date(Date.now() - 10 * 86400000) },
+          { title: 'Auth flow redesign', status: 'done', priority: 'high', dueDate: new Date(Date.now() - 7 * 86400000) },
+          { title: 'Push notifications setup', status: 'in-progress', priority: 'high', dueDate: new Date(Date.now() + 5 * 86400000) },
+          { title: 'Offline mode support', status: 'in-progress', priority: 'medium', dueDate: new Date(Date.now() + 10 * 86400000) },
+          { title: 'Analytics integration', status: 'todo', priority: 'medium', dueDate: new Date(Date.now() + 20 * 86400000) },
+          { title: 'Beta testing', status: 'todo', priority: 'high', dueDate: new Date(Date.now() + 35 * 86400000) },
         ]
       },
       messages: {
@@ -81,11 +81,11 @@ async function main() {
       riskReason: 'Two team members on leave next week. Timeline may slip.',
       tasks: {
         create: [
-          { title: 'Architecture design doc', status: 'done', priority: 'high', assignee: 'Alex R.', dueDate: new Date(Date.now() - 14 * 86400000) },
-          { title: 'Kafka cluster setup', status: 'done', priority: 'high', assignee: 'Alex R.', dueDate: new Date(Date.now() - 7 * 86400000) },
-          { title: 'Source connectors (6/12)', status: 'in-progress', priority: 'high', assignee: 'Nina W.', dueDate: new Date(Date.now() + 7 * 86400000) },
-          { title: 'Data transformation layer', status: 'todo', priority: 'high', assignee: 'Alex R.', dueDate: new Date(Date.now() + 14 * 86400000) },
-          { title: 'Monitoring dashboards', status: 'todo', priority: 'medium', assignee: 'Nina W.', dueDate: new Date(Date.now() + 25 * 86400000) },
+          { title: 'Architecture design doc', status: 'done', priority: 'high', dueDate: new Date(Date.now() - 14 * 86400000) },
+          { title: 'Kafka cluster setup', status: 'done', priority: 'high', dueDate: new Date(Date.now() - 7 * 86400000) },
+          { title: 'Source connectors (6/12)', status: 'in-progress', priority: 'high', dueDate: new Date(Date.now() + 7 * 86400000) },
+          { title: 'Data transformation layer', status: 'todo', priority: 'high', dueDate: new Date(Date.now() + 14 * 86400000) },
+          { title: 'Monitoring dashboards', status: 'todo', priority: 'medium', dueDate: new Date(Date.now() + 25 * 86400000) },
         ]
       },
       messages: {

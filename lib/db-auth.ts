@@ -25,7 +25,7 @@ export async function registerUser(input: {
     email: string;
     password: string;
     role?: Role;
-}): Promise<{ email: string }> {
+}): Promise<{ email: string; id: string }> {
     const existing = await prisma.user.findUnique({
         where: { email: input.email.toLowerCase().trim() },
     });
@@ -33,7 +33,7 @@ export async function registerUser(input: {
 
     const passwordHash = await bcrypt.hash(input.password, 12);
 
-    await prisma.user.create({
+    const newUser = await prisma.user.create({
         data: {
             name: input.name.trim(),
             email: input.email.toLowerCase().trim(),
@@ -44,7 +44,7 @@ export async function registerUser(input: {
         },
     });
 
-    return { email: input.email.toLowerCase().trim() };
+    return { email: newUser.email, id: newUser.id };
 }
 
 // ── Verify ─────────────────────────────────────────────────────
